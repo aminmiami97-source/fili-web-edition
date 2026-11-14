@@ -1,0 +1,17 @@
+{
+  "name": "fili-web-edition",
+  "version": "1.0.0",
+  "private": false,
+  "description": "FILI 1.0 — a chat-focused AI assistant with local knowledge retrieval.",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7"
+  }
+}
