@@ -2,16 +2,21 @@
   "name": "fili-web-edition",
   "version": "1.0.0",
   "private": false,
-  "description": "FILI 1.0 — a chat-focused AI assistant with local knowledge retrieval.",
+  "type": "module",
+  "description": "FILI 1.0 — an on-device AI assistant powered by Qwen3-0.6B.",
   "license": "Apache-2.0",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+    "build": "vite build",
+    "dev": "vite --host 0.0.0.0",
+    "start": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
-    "dotenv": "^16.4.7"
+    "@huggingface/transformers": "^3.8.1"
+  },
+  "devDependencies": {
+    "vite": "^6.4.6"
   }
 }
