@@ -179,8 +179,8 @@ export default async function chatHandler(request, context) {
     // Keep provider diagnostics useful while never returning credentials.
     const safeDetail = String(detail)
       .replace(/hf_[A-Za-z0-9_-]{12,}/g, "[redacted token]")
-      .replace(/Bearer\\s+[^\\s]+/gi, "Bearer [redacted]")
-      .replace(/\\s+/g, " ")
+      .replace(/Bearer\s+[^\s]+/gi, "Bearer [redacted]")
+      .replace(/\s+/g, " ")
       .trim()
       .slice(0, 260);
 
