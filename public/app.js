@@ -24,6 +24,7 @@ let resolveModelLoad = null;
 let rejectModelLoad = null;
 let activeAssistantText = "";
 let activeAssistantNode = null;
+let activeAssistantSources = [];
 let generatingConversation = null;
 let modelWorker;
 
@@ -218,7 +219,8 @@ function handleWorkerMessage(event) {
       break;
     case "start":
       activeAssistantText = "";
-      activeAssistantNode = addMessage("assistant", "", data.sources || []);
+      activeAssistantSources = data.sources || [];
+      activeAssistantNode = addMessage("assistant", "", activeAssistantSources);
       break;
     case "token":
       activeAssistantText += data.text || "";
@@ -232,13 +234,14 @@ function handleWorkerMessage(event) {
         generatingConversation.messages.push({
           role: "assistant",
           content: activeAssistantText,
-          sources: data.sources || []
+          sources: activeAssistantSources
         });
         generatingConversation.updatedAt = Date.now();
         saveConversations();
       }
       generatingConversation = null;
       activeAssistantNode = null;
+      activeAssistantSources = [];
       setBusy(false);
       renderHistory();
       scrollToBottom();
@@ -249,6 +252,7 @@ function handleWorkerMessage(event) {
       else addMessage("assistant", message);
       generatingConversation = null;
       activeAssistantNode = null;
+      activeAssistantSources = [];
       setBusy(false);
       break;
     }
