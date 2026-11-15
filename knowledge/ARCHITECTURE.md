@@ -4,7 +4,7 @@
 1. The browser sends the latest conversation messages to the Node.js backend.
 2. The backend retrieves a small number of relevant sections from Markdown files in this folder.
 3. The backend adds FILI's system instructions and retrieved knowledge to the request.
-4. The backend sends the request to a configurable OpenAI-compatible chat-completions endpoint.
+4. The backend sends the request to the Hugging Face OpenAI-compatible chat-completions endpoint, with Featherless AI explicitly selected for the default model.
 5. The backend streams the response back to the browser.
 
 ## Current model
