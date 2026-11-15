@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  syntax:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -16,11 +16,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Check server syntax
-        run: node --check server.js
-      - name: Check browser JavaScript syntax
+      - name: Install dependencies
+        run: npm install
+      - name: Check browser application syntax
         run: node --check public/app.js
-      - name: Check Netlify function syntax
-        run: |
-          node --check netlify/functions/health.mjs
-          node --check netlify/functions/chat.mjs
+      - name: Check model worker syntax
+        run: node --check public/worker.js
+      - name: Build static website
+        run: npm run build
