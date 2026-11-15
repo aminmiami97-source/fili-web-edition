@@ -1,27 +1,30 @@
-# FILI web edition architecture
+# FILI Web Edition architecture
 
-## Current request flow
-1. The browser sends the latest conversation messages to the Node.js backend.
-2. The backend retrieves a small number of relevant sections from Markdown files in this folder.
-3. The backend adds FILI's system instructions and retrieved knowledge to the request.
-4. The backend sends the request to the Hugging Face OpenAI-compatible chat-completions endpoint, with Featherless AI explicitly selected for the default model.
-5. The backend streams the response back to the browser.
+## Inference
 
-## Current model
-The default model identifier is Qwen/Qwen3-0.6B. The model can be changed with the HF_MODEL environment variable.
+FILI uses Qwen3-0.6B from the public ONNX model repository `onnx-community/Qwen3-0.6B-ONNX`.
+
+The website loads the quantized model with Transformers.js and ONNX Runtime Web in a dedicated browser Web Worker. The WebGPU backend executes model inference on the visitor's device. No Hugging Face Inference Provider API is called, and no inference API token is required.
+
+The first visit downloads the model files from the public Hugging Face model repository. The browser caches those files for later visits. The model download is separate from chat: user prompts and chat history are processed locally and are not sent to an AI inference API.
 
 ## Knowledge retrieval
-The first version uses lightweight keyword matching over Markdown sections. This is a simple retrieval-augmented generation (RAG) baseline, not a vector database or model-training process. Add factual project information to this folder as needed.
 
-## Conversation context and memory
-The browser stores recent conversations in localStorage on the user's device. Recent messages are sent to the backend as context when the user chats. This is browser-local history and short-term context; it is not a server-side account memory system and it does not update model weights.
+The first version uses lightweight keyword matching over a small set of FILI identity and architecture notes embedded in the worker. This is a RAG baseline, not a vector database or model-training process.
 
-## LoRA adapter status
-A separately trained LoRA adapter is not loaded by this web edition yet. To use it, deploy a compatible inference server that serves the adapter (or a merged model), then configure HF_API_URL and HF_MODEL for that endpoint.
+## Conversation history
 
-## Security boundaries
-- The inference token is read only by the server from environment variables.
-- Never put API tokens in public frontend files or commit a real .env file.
-- The backend validates message roles and lengths and applies a simple in-memory per-IP request limit.
-- Chat contents are not written to server-side conversation storage by this starter app.
-- Requests are sent to the configured model provider; review that provider's current data-handling terms before public use.
+The browser stores recent conversations in localStorage. This is local browser history and short-term context; it is not a server-side account memory system and does not update model weights.
+
+## Model and adapter status
+
+The current browser build uses the ONNX export of the base Qwen3-0.6B model. The separately trained FILI LoRA adapter is not included in this ONNX model yet. To use that adapter, it would need to be merged/exported into a compatible ONNX model and tested with Transformers.js.
+
+## Requirements and limitations
+
+- A modern browser with WebGPU support is required by this build.
+- A compatible GPU and sufficient device memory are required.
+- The first model download can be large and takes longer than later visits.
+- Generation speed depends on the visitor's GPU, browser, and available memory.
+- If WebGPU is unavailable, the model will not load in this version.
+- The site is static-hosted on Netlify; model inference happens in the browser.
