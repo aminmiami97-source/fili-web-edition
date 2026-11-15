@@ -9,7 +9,7 @@ const PORT = Number(process.env.PORT || 3000);
 const PUBLIC_DIR = path.join(__dirname, "public");
 const KNOWLEDGE_DIR = path.join(__dirname, "knowledge");
 const API_URL = process.env.HF_API_URL || "https://router.huggingface.co/v1/chat/completions";
-const MODEL = process.env.HF_MODEL || "Qwen/Qwen3-0.6B";
+const MODEL = process.env.HF_MODEL || "Qwen/Qwen3-0.6B:featherless-ai";
 const MAX_BODY_BYTES = 160_000;
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_MAX = 20;
@@ -147,15 +147,43 @@ async function handleChat(req, res) {
   if (!upstream.ok) {
     let detail = "";
     try {
-      const data = await upstream.json();
-      detail = data.error?.message || data.error || data.message || "";
+      const rawDetail = await upstream.text();
+      try {
+        const data = JSON.parse(rawDetail);
+        const candidate = data.error?.message || data.error?.details || data.error || data.message || "";
+        detail = typeof candidate === "string" ? candidate : JSON.stringify(candidate);
+      } catch {
+        detail = rawDetail;
+      }
     } catch {}
-    console.error("Model provider returned", upstream.status, detail);
-    const friendly = upstream.status === 401 || upstream.status === 403
-      ? "The model provider rejected the server token. Check that HF_TOKEN is valid and has Inference Providers permission."
-      : upstream.status === 429
-        ? "The model provider is temporarily rate-limiting requests or the available quota has been reached."
-        : "The model provider could not complete this request. Check the configured model and provider availability.";
+
+    const safeDetail = String(detail)
+      .replace(/hf_[A-Za-z0-9_-]{12,}/g, "[redacted token]")
+      .replace(/Bearer\\s+[^\\s]+/gi, "Bearer [redacted]")
+      .replace(/\\s+/g, " ")
+      .trim()
+      .slice(0, 260);
+
+    console.error("FILI_PROVIDER_ERROR", { status: upstream.status, model: MODEL, detail: safeDetail });
+
+    let friendly;
+    if (upstream.status === 401 || upstream.status === 403) {
+      friendly = "Hugging Face rejected the server token. Check that HF_TOKEN is valid and has Inference Providers permission.";
+    } else if (upstream.status === 402) {
+      friendly = "The inference provider requires available billing or usage credits on your Hugging Face account.";
+    } else if (upstream.status === 404) {
+      friendly = "The selected model is not available at the selected inference provider.";
+    } else if (upstream.status === 400) {
+      friendly = "The selected provider rejected the model or request format.";
+    } else if (upstream.status === 429) {
+      friendly = "The inference provider is rate-limiting requests or the available quota has been reached.";
+    } else if (upstream.status >= 500) {
+      friendly = "The inference provider is temporarily unavailable. Please try again shortly.";
+    } else {
+      friendly = "The inference provider rejected the request (HTTP " + upstream.status + ").";
+    }
+
+    if (safeDetail) friendly += " Provider details: " + safeDetail;
     return sendJson(res, upstream.status === 429 ? 429 : 502, { error: friendly });
   }
 
