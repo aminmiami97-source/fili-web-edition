@@ -1,94 +1,73 @@
 # FILI Web Edition
 
-**FILI 1.0** is a chat-focused AI assistant web app with its own interface, personality instructions, and a small local knowledge-retrieval layer.
+**FILI 1.0** is a chat-focused AI assistant with its own interface, personality instructions, browser-local conversation history, and a small knowledge-retrieval layer.
 
-> **Model transparency:** The starter configuration uses `Qwen/Qwen3-0.6B:featherless-ai` as its underlying model through an OpenAI-compatible inference API. FILI is the product and assistant experience; it is not a separately trained foundation model. The FILI LoRA adapter is not loaded by this first web edition yet.
+> **Model transparency:** FILI currently runs the ONNX export of **Qwen3-0.6B** locally in the visitor's browser. FILI is the assistant product and experience; the underlying foundation-model weights are Qwen's. The separately trained FILI LoRA adapter is not included in this browser build yet.
 
 ## Features
 
 - Responsive dark interface with a violet accent
+- Local Qwen3-0.6B inference using Transformers.js and ONNX Runtime Web
+- WebGPU acceleration in a dedicated browser worker
+- First-run model download progress
 - Streaming assistant replies
 - Browser-local conversation history
 - Copy response action
-- FILI personality instructions
-- Lightweight Markdown knowledge retrieval (RAG baseline)
-- Server-side model token; no key is shipped to the browser
-- Basic input validation and best-effort per-instance request throttling
+- FILI personality instructions and a lightweight local knowledge-retrieval baseline
+- No hosted inference API, inference token, or model-provider credits required
 
-## Deploy on Netlify (recommended)
+## Deploy on Netlify
 
-This repository is configured for Netlify Free. The current Free plan is $0/month with a hard monthly usage limit; when the limit is reached, service pauses rather than automatically recharging the account. Check the current plan limits before sharing the site publicly.
+This repository builds as a static site. Netlify only hosts the web files; the visitor's browser runs the model.
 
-1. Sign in at https://app.netlify.com/.
+1. Open https://app.netlify.com/.
 2. Choose **Add new project → Import an existing project**.
 3. Connect GitHub and select `aminmiami97-source/fili-web-edition`.
-4. Netlify should detect the repository settings from `netlify.toml`. Confirm:
-   - Build command: `npm install`
-   - Publish directory: `public`
-   - Functions directory: `netlify/functions`
-5. Before publishing, open **Project configuration → Environment variables** and add only:
-   - `HF_TOKEN`: your Hugging Face inference token. Mark this one as a secret.
-6. Do not add `HF_MODEL` or `HF_API_URL` as secret variables. The Netlify functions already contain the public defaults `Qwen/Qwen3-0.6B:featherless-ai` and `https://router.huggingface.co/v1/chat/completions`.
-7. Ensure `HF_TOKEN` is available to Functions at runtime, then deploy.
-8. Open your Netlify site URL. Check `/api/health`; it should return `"configured": true`.
+4. Confirm these build settings:
+   - Build command: `npm install && npm run build`
+   - Publish directory: `dist`
+5. Deploy the project.
 
-**Never** paste the real token into GitHub, `.env.example`, the browser JavaScript, or public issue comments. Netlify environment variables are stored separately from the repository and can be used by serverless functions.
+**No Hugging Face API token or secret environment variable is required.** The model weights are fetched from the public ONNX model repository on the visitor's first load. Their chat messages are processed locally in their browser.
 
-The website and backend run on Netlify. The default Qwen3-0.6B request is explicitly routed through Featherless AI using the Hugging Face provider suffix. Inference is subject to provider availability, account permissions, quotas, and pricing. Hosting the website for free does not guarantee free model inference.
+## First use
+
+1. Open the deployed FILI website in a modern browser with WebGPU support (current Chrome or Edge on a compatible device is recommended).
+2. Click **Load FILI model**.
+3. Wait while the browser downloads the model files and compiles the GPU shaders. This can take a while on the first visit.
+4. Once the status says the model is ready, start chatting.
+
+The browser caches model files for subsequent visits. Clearing the browser's site data may require downloading them again.
 
 ## Local development
 
 Requirements: Node.js 20 or newer.
 
-1. Clone the repository.
-2. Install dependencies:
+```bash
+npm install
+npm run dev
+```
 
-   ```bash
-   npm install
-   ```
+Open the local URL printed by Vite. To create a production build locally, run:
 
-3. Copy `.env.example` to `.env` and set your local `HF_TOKEN`.
-4. Run:
+```bash
+npm run build
+npm start
+```
 
-   ```bash
-   npm start
-   ```
+## Privacy
 
-5. Open `http://localhost:3000`.
-
-The original `server.js` is retained for local development. Netlify production uses the serverless functions in `netlify/functions/`.
-
-## Model configuration
-
-Defaults:
-
-- `HF_API_URL=https://router.huggingface.co/v1/chat/completions`
-- `HF_MODEL=Qwen/Qwen3-0.6B`
-
-These are public configuration values already set as defaults in the Netlify function. They are not credentials and do not need to be added as secret environment variables. Provider availability and usage charges or limits depend on the provider and account.
-
-## Knowledge retrieval
-
-The first Netlify function includes the FILI identity and architecture notes as small local knowledge sections. The initial retrieval uses keyword matching. It is a simple RAG baseline, not a vector database and not model training.
-
-## Conversation context and memory
-
-The browser stores recent conversations in localStorage. Recent messages are sent to the backend as context when the visitor chats. This is browser-local history and short-term context, not a server-side account memory system and it does not update model weights.
+Chat prompts and responses are processed on the visitor's device by the locally loaded model. The site does not send chat messages to Hugging Face Inference Providers or another model API. The browser does download model files from the public Hugging Face model repository. Conversation history is kept in browser localStorage.
 
 ## Current limitations
 
-- The previously trained FILI LoRA adapter is **not connected** to this website yet. It must be hosted by a compatible inference endpoint (or merged into a model) before this app can use it.
-- Conversation history is stored in the visitor's browser, not in a user account or server database.
-- RAG is currently a lightweight keyword-based prototype.
-- Netlify streaming functions have a documented 60-second synchronous execution limit.
-- Request throttling in the function is best-effort per running instance, not a complete anti-abuse system. Add stronger controls before a large public launch.
-- Chat messages are sent to the configured model provider to generate replies. Review its current privacy and data-processing terms before deployment.
+- **WebGPU required:** This version needs a browser and device with compatible WebGPU support. If the browser cannot access a GPU adapter, the model will not load.
+- **First-run download:** The ONNX model files are downloaded by the visitor's browser and may take time and bandwidth on first use.
+- **Device performance:** Response speed and memory use depend on each visitor's hardware.
+- **LoRA adapter:** The FILI LoRA adapter trained in the earlier experiment is not yet integrated into this ONNX export.
+- **Knowledge retrieval:** The starter knowledge retrieval uses keyword matching over a small set of notes. It is not yet a vector database.
+- **Memory:** Conversation history is browser-local and is not synced between devices or accounts.
 
 ## License
 
 The original source code in this repository is released under the Apache License 2.0. Third-party models, libraries, fonts, and other assets remain subject to their own licenses and terms. See [LICENSE](LICENSE).
-
-
-## Provider troubleshooting
-
-The production function pins the default Qwen3-0.6B model to Featherless AI because that provider is listed on the model page. If the provider rejects a request, the chat response now includes a short sanitized provider diagnostic and the Netlify function logs include the HTTP status and error details. Never share the HF token in screenshots or logs.
