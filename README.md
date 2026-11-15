@@ -2,7 +2,7 @@
 
 **FILI 1.0** is a chat-focused AI assistant web app with its own interface, personality instructions, and a small local knowledge-retrieval layer.
 
-> **Model transparency:** The starter configuration uses `Qwen/Qwen3-0.6B` as its underlying model through an OpenAI-compatible inference API. FILI is the product and assistant experience; it is not a separately trained foundation model. The FILI LoRA adapter is not loaded by this first web edition yet.
+> **Model transparency:** The starter configuration uses `Qwen/Qwen3-0.6B:featherless-ai` as its underlying model through an OpenAI-compatible inference API. FILI is the product and assistant experience; it is not a separately trained foundation model. The FILI LoRA adapter is not loaded by this first web edition yet.
 
 ## Features
 
@@ -28,13 +28,13 @@ This repository is configured for Netlify Free. The current Free plan is $0/mont
    - Functions directory: `netlify/functions`
 5. Before publishing, open **Project configuration → Environment variables** and add only:
    - `HF_TOKEN`: your Hugging Face inference token. Mark this one as a secret.
-6. Do not add `HF_MODEL` or `HF_API_URL` as secret variables. The Netlify functions already contain the public defaults `Qwen/Qwen3-0.6B` and `https://router.huggingface.co/v1/chat/completions`.
+6. Do not add `HF_MODEL` or `HF_API_URL` as secret variables. The Netlify functions already contain the public defaults `Qwen/Qwen3-0.6B:featherless-ai` and `https://router.huggingface.co/v1/chat/completions`.
 7. Ensure `HF_TOKEN` is available to Functions at runtime, then deploy.
 8. Open your Netlify site URL. Check `/api/health`; it should return `"configured": true`.
 
 **Never** paste the real token into GitHub, `.env.example`, the browser JavaScript, or public issue comments. Netlify environment variables are stored separately from the repository and can be used by serverless functions.
 
-The website and backend run on Netlify. The model inference is provided by Hugging Face and is subject to that provider's availability, account permissions, quotas, and pricing. Hosting the website for free does not guarantee free model inference.
+The website and backend run on Netlify. The default Qwen3-0.6B request is explicitly routed through Featherless AI using the Hugging Face provider suffix. Inference is subject to provider availability, account permissions, quotas, and pricing. Hosting the website for free does not guarantee free model inference.
 
 ## Local development
 
@@ -87,3 +87,8 @@ The browser stores recent conversations in localStorage. Recent messages are sen
 ## License
 
 The original source code in this repository is released under the Apache License 2.0. Third-party models, libraries, fonts, and other assets remain subject to their own licenses and terms. See [LICENSE](LICENSE).
+
+
+## Provider troubleshooting
+
+The production function pins the default Qwen3-0.6B model to Featherless AI because that provider is listed on the model page. If the provider rejects a request, the chat response now includes a short sanitized provider diagnostic and the Netlify function logs include the HTTP status and error details. Never share the HF token in screenshots or logs.
