@@ -13,10 +13,10 @@ env.useWasmCache = true;
 
 function getTokenBudget(prompt) {
   const text = String(prompt || "").trim().toLowerCase();
-  if (/^(hi|hello|hey|heya|hiya|yo|good morning|good afternoon|good evening|thanks|thank you)[.!?\s]*$/.test(text)) {
+  if (/^(hi|hello|hey|heya|hiya|yo|good morning|good afternoon|good evening|thanks|thank you)(\\s+fili)?[.!?\\s]*$/.test(text)) {
     return 40;
   }
-  if (/\\b(code|coding|program|script|function|debug|implement|build|write|create|html|javascript|python)\\b/.test(text)) {
+  if (["code", "coding", "program", "script", "function", "debug", "implement", "build", "write", "create", "html", "javascript", "python"].some((word) => text.includes(word))) {
     return 256;
   }
   if (text.length < 80) return 96;
@@ -149,7 +149,10 @@ async function generate(data) {
     systemMessage,
     ...data.messages.filter((message) =>
       message && ["user", "assistant"].includes(message.role) && typeof message.content === "string"
-    ).slice(-12)
+    ).slice(-8).map((message) => ({
+      role: message.role,
+      content: message.content.slice(-1200)
+    }))
   ];
   const sources = retrieved.map((item) => item.source);
 
