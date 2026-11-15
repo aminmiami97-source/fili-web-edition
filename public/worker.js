@@ -162,7 +162,7 @@ async function generate(data) {
       streamer
     });
 
-    self.postMessage({ status: "complete" });
+    self.postMessage({ status: "complete", sources });
   } catch (error) {
     self.postMessage({
       status: "generation-error",
