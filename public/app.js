@@ -25,6 +25,7 @@ let rejectModelLoad = null;
 let activeAssistantText = "";
 let activeAssistantNode = null;
 let activeAssistantSources = [];
+let streamFramePending = false;
 let generatingConversation = null;
 let modelWorker;
 
@@ -164,6 +165,18 @@ function updateConnection(state, text) {
   connectionStatus.classList.toggle("online", state === "ready");
   connectionStatus.classList.toggle("offline", state === "error");
 }
+function flushAssistantStream(final = false) {
+  if (!activeAssistantNode) return;
+  if (final) {
+    activeAssistantNode.style.whiteSpace = "";
+    activeAssistantNode.innerHTML = renderSafeMarkdown(activeAssistantText);
+  } else {
+    // Plain text updates are much cheaper than reparsing Markdown on every chunk.
+    activeAssistantNode.style.whiteSpace = "pre-wrap";
+    activeAssistantNode.textContent = activeAssistantText;
+  }
+}
+
 function showModelProgress(label, percent = null) {
   modelProgressWrap.classList.remove("hidden");
   modelProgressLabel.textContent = label;
@@ -220,16 +233,24 @@ function handleWorkerMessage(event) {
     case "start":
       activeAssistantText = "";
       activeAssistantSources = data.sources || [];
+      streamFramePending = false;
       activeAssistantNode = addMessage("assistant", "", activeAssistantSources);
       break;
     case "token":
       activeAssistantText += data.text || "";
-      if (activeAssistantNode) {
-        activeAssistantNode.innerHTML = renderSafeMarkdown(activeAssistantText);
-        scrollToBottom();
+      // Batch UI writes to at most one per animation frame instead of
+      // formatting the entire growing answer for every generated word.
+      if (!streamFramePending) {
+        streamFramePending = true;
+        requestAnimationFrame(() => {
+          streamFramePending = false;
+          flushAssistantStream(false);
+          scrollToBottom();
+        });
       }
       break;
     case "complete":
+      flushAssistantStream(true);
       if (generatingConversation && activeAssistantText.trim()) {
         generatingConversation.messages.push({
           role: "assistant",
@@ -248,8 +269,10 @@ function handleWorkerMessage(event) {
       break;
     case "generation-error": {
       const message = data.data || "FILI could not generate a response.";
-      if (activeAssistantNode) activeAssistantNode.innerHTML = "<p>" + escapeHtml(message) + "</p>";
-      else addMessage("assistant", message);
+      if (activeAssistantNode) {
+        if (activeAssistantText.trim()) flushAssistantStream(true);
+        else activeAssistantNode.innerHTML = "<p>" + escapeHtml(message) + "</p>";
+      } else addMessage("assistant", message);
       generatingConversation = null;
       activeAssistantNode = null;
       activeAssistantSources = [];
