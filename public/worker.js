@@ -13,7 +13,7 @@ env.useWasmCache = true;
 
 function getTokenBudget(prompt) {
   const text = String(prompt || "").trim().toLowerCase();
-  if (/^(hi|hello|hey|heya|hiya|yo|good morning|good afternoon|good evening|thanks|thank you)(\\s+fili)?[.!?\\s]*$/.test(text)) {
+  if (/^(hi|hello|hey|heya|hiya|yo|good morning|good afternoon|good evening|thanks|thank you)(\s+fili)?[.!?\s]*$/.test(text)) {
     return 40;
   }
   if (["code", "coding", "program", "script", "function", "debug", "implement", "build", "write", "create", "html", "javascript", "python"].some((word) => text.includes(word))) {
@@ -41,7 +41,13 @@ const KNOWLEDGE = [
 ];
 
 function retrieveKnowledge(query) {
-  const terms = [...new Set((query.toLowerCase().match(/[a-z0-9_]{3,}/g) || []))];
+  const stopwords = new Set([
+    "fili", "the", "and", "you", "your", "are", "for", "with", "that",
+    "this", "what", "how", "can", "could", "would", "please", "help",
+    "hello", "hey", "hi", "about", "from", "have", "does"
+  ]);
+  const terms = [...new Set((query.toLowerCase().match(/[a-z0-9_]{3,}/g) || []))]
+    .filter((term) => !stopwords.has(term));
   if (!terms.length) return [];
   return KNOWLEDGE.map((item) => {
     const text = item.text.toLowerCase();
