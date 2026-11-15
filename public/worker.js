@@ -1,10 +1,28 @@
 import {
   AutoTokenizer,
   AutoModelForCausalLM,
-  TextStreamer
+  TextStreamer,
+  env
 } from "@huggingface/transformers";
 
 const MODEL_ID = "onnx-community/Qwen3-0.6B-ONNX";
+
+// Keep the downloaded ONNX weights and runtime files in browser cache.
+env.useBrowserCache = true;
+env.useWasmCache = true;
+
+function getTokenBudget(prompt) {
+  const text = String(prompt || "").trim().toLowerCase();
+  if (/^(hi|hello|hey|heya|hiya|yo|good morning|good afternoon|good evening|thanks|thank you)[.!?\s]*$/.test(text)) {
+    return 40;
+  }
+  if (/\\b(code|coding|program|script|function|debug|implement|build|write|create|html|javascript|python)\\b/.test(text)) {
+    return 256;
+  }
+  if (text.length < 80) return 96;
+  if (text.length > 600) return 192;
+  return 144;
+}
 let tokenizerPromise = null;
 let modelPromise = null;
 let tokenizer = null;
@@ -154,11 +172,9 @@ async function generate(data) {
 
     await model.generate({
       ...inputs,
-      max_new_tokens: 512,
-      do_sample: true,
-      top_k: 20,
-      temperature: 0.7,
-      repetition_penalty: 1.08,
+      max_new_tokens: getTokenBudget(lastUser?.content),
+      do_sample: false,
+      repetition_penalty: 1.05,
       streamer
     });
 
