@@ -26,12 +26,11 @@ This repository is configured for Netlify Free. The current Free plan is $0/mont
    - Build command: `npm install`
    - Publish directory: `public`
    - Functions directory: `netlify/functions`
-5. Before publishing, open **Project configuration → Environment variables** and add:
-   - `HF_TOKEN`: your Hugging Face inference token (keep this private)
-   - `HF_MODEL`: `Qwen/Qwen3-0.6B`
-   - `HF_API_URL`: `https://router.huggingface.co/v1/chat/completions`
-6. Ensure the token is available to Functions at runtime, then deploy.
-7. Open your Netlify site URL. Check `/api/health`; it should return `"configured": true`.
+5. Before publishing, open **Project configuration → Environment variables** and add only:
+   - `HF_TOKEN`: your Hugging Face inference token. Mark this one as a secret.
+6. Do not add `HF_MODEL` or `HF_API_URL` as secret variables. The Netlify functions already contain the public defaults `Qwen/Qwen3-0.6B` and `https://router.huggingface.co/v1/chat/completions`.
+7. Ensure `HF_TOKEN` is available to Functions at runtime, then deploy.
+8. Open your Netlify site URL. Check `/api/health`; it should return `"configured": true`.
 
 **Never** paste the real token into GitHub, `.env.example`, the browser JavaScript, or public issue comments. Netlify environment variables are stored separately from the repository and can be used by serverless functions.
 
@@ -66,7 +65,7 @@ Defaults:
 - `HF_API_URL=https://router.huggingface.co/v1/chat/completions`
 - `HF_MODEL=Qwen/Qwen3-0.6B`
 
-These can be changed in the hosting provider's environment-variable settings. Provider availability and usage charges or limits depend on the provider and account.
+These are public configuration values already set as defaults in the Netlify function. They are not credentials and do not need to be added as secret environment variables. Provider availability and usage charges or limits depend on the provider and account.
 
 ## Knowledge retrieval
 
